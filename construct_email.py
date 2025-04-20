@@ -7,7 +7,7 @@ from email.utils import parseaddr, formataddr
 import smtplib
 import datetime
 from loguru import logger
-
+import json
 framework = """
 <!DOCTYPE HTML>
 <html>
@@ -54,52 +54,98 @@ def get_empty_html():
         No Papers Today. Take a Rest!
     </td>
   </tr>
-  </table>
   """
   return block_template
 
-def get_block_html(title:str, authors:str, rate:str,arxiv_id:str, abstract:str, pdf_url:str, code_url:str=None, affiliations:str=None):
+def get_block_html(title:str, authors:str, arxiv_id:str, abstract:str, pdf_url:str, code_url:str=None, affiliations:str=None, date:str=None,comment:str=None,abs_url:str=None, rate:str='0'):
     code = f'<a href="{code_url}" style="display: inline-block; text-decoration: none; font-size: 14px; font-weight: bold; color: #fff; background-color: #5bc0de; padding: 8px 16px; border-radius: 4px; margin-left: 8px;">Code</a>' if code_url else ''
-    block_template = """
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Arial, sans-serif; border: 1px solid #ddd; border-radius: 8px; padding: 16px; background-color: #f9f9f9;">
-    <tr>
-        <td style="font-size: 20px; font-weight: bold; color: #333;">
-            {title}
-        </td>
-    </tr>
-    <tr>
-        <td style="font-size: 14px; color: #666; padding: 8px 0;">
-            {authors}
-            <br>
-            <i>{affiliations}</i>
-        </td>
-    </tr>
-    <tr>
-        <td style="font-size: 14px; color: #333; padding: 8px 0;">
-            <strong>Relevance:</strong> {rate}
-        </td>
-    </tr>
-    <tr>
-        <td style="font-size: 14px; color: #333; padding: 8px 0;">
-            <strong>arXiv ID:</strong> {arxiv_id}
-        </td>
-    </tr>
-    <tr>
-        <td style="font-size: 14px; color: #333; padding: 8px 0;">
-            <strong>TLDR:</strong> {abstract}
-        </td>
-    </tr>
+    if comment:
+        block_template = """
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Arial, sans-serif; border: 1px solid #ddd; border-radius: 8px; padding: 16px; background-color: #f9f9f9;">
+        <tr>
+            <td style="font-size: 20px; font-weight: bold; color: #333;">
+                {title}
+            </td>
+        </tr>
+        <tr>
+            <td style="font-size: 14px; color: #666; padding: 8px 0;">
+                {authors}
+                <br>
+                <i>{affiliations}</i>
+            </td>
+        </tr>
+        <tr>
+            <td style="font-size: 14px; color: #333; padding: 8px 0;">
+                <strong>Date:</strong> {date}
+            </td>
+        </tr>
+        <tr>
+            <td style="font-size: 14px; color: #333; padding: 8px 0;">
+                <strong>arXiv:</strong> {abs_url}
+            </td>
+        </tr>
 
-    <tr>
-        <td style="padding: 8px 0;">
-            <a href="{pdf_url}" style="display: inline-block; text-decoration: none; font-size: 14px; font-weight: bold; color: #fff; background-color: #d9534f; padding: 8px 16px; border-radius: 4px;">PDF</a>
-            {code}
-        </td>
-    </tr>
-</table>
-"""
-    return block_template.format(title=title, authors=authors,rate=rate,arxiv_id=arxiv_id, abstract=abstract, pdf_url=pdf_url, code=code, affiliations=affiliations)
+        <tr>
+            <td style="font-size: 14px; color: #333; padding: 8px 0;">
+                <strong>TLDR:</strong> {abstract}
+            </td>
+        </tr>
 
+        <tr>
+            <td style="padding: 8px 0;">
+                <a href="{pdf_url}" style="display: inline-block; text-decoration: none; font-size: 14px; font-weight: bold; color: #fff; background-color: #d9534f; padding: 8px 16px; border-radius: 4px;">PDF</a>
+                {code}
+            </td>
+        </tr>
+        <tr>
+            <td style="font-size: 14px; color: #333; padding: 8px 0;">
+                <strong>Comment:</strong> {comment}
+            </td>
+        </tr>
+    </table>
+    """
+        return block_template.format(title=title, authors=authors,abs_url=abs_url, abstract=abstract, pdf_url=pdf_url, code=code, affiliations=affiliations, date=date, comment=comment)
+    else:
+        block_template = """
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Arial, sans-serif; border: 1px solid #ddd; border-radius: 8px; padding: 16px; background-color: #f9f9f9;">
+        <tr>
+            <td style="font-size: 20px; font-weight: bold; color: #333;">
+                {title}
+            </td>
+        </tr>
+        <tr>
+            <td style="font-size: 14px; color: #666; padding: 8px 0;">
+                {authors}
+                <br>
+                <i>{affiliations}</i>
+            </td>
+        </tr>
+        <tr>
+            <td style="font-size: 14px; color: #333; padding: 8px 0;">
+                <strong>Date:</strong> {date}
+            </td>
+        </tr>
+        <tr>
+            <td style="font-size: 14px; color: #333; padding: 8px 0;">
+                <strong>arXiv:</strong> {abs_url}
+            </td>
+        </tr>
+        <tr>
+            <td style="font-size: 14px; color: #333; padding: 8px 0;">
+                <strong>TLDR:</strong> {abstract}
+            </td>
+        </tr>
+
+        <tr>
+            <td style="padding: 8px 0;">
+                <a href="{pdf_url}" style="display: inline-block; text-decoration: none; font-size: 14px; font-weight: bold; color: #fff; background-color: #d9534f; padding: 8px 16px; border-radius: 4px;">PDF</a>
+                {code}
+            </td>
+        </tr>
+    </table>
+    """
+        # return block_template.format(title=title, authors=authors,rate=rate,arxiv_id=arxiv_id, abstract=abstract, pdf_url=pdf_url, code=code, affiliations=affiliations, date=date)
+        return block_template.format(title=title, authors=authors,abs_url=abs_url, abstract=abstract, pdf_url=pdf_url, code=code, affiliations=affiliations, date=date)
 def get_stars(score:float):
     full_star = '<span class="full-star">⭐</span>'
     half_star = '<span class="half-star">⭐</span>'
@@ -122,8 +168,9 @@ def render_email(papers:list[ArxivPaper]):
     if len(papers) == 0 :
         return framework.replace('__CONTENT__', get_empty_html())
     
+    papers = sorted(papers, key=lambda p: p.date, reverse=True)
     for p in tqdm(papers,desc='Rendering Email'):
-        rate = get_stars(p.score)
+        # rate = get_stars(p.score)
         authors = [a.name for a in p.authors[:5]]
         authors = ', '.join(authors)
         if len(p.authors) > 5:
@@ -135,7 +182,7 @@ def render_email(papers:list[ArxivPaper]):
                 affiliations += ', ...'
         else:
             affiliations = 'Unknown Affiliation'
-        parts.append(get_block_html(p.title, authors,rate,p.arxiv_id ,p.tldr, p.pdf_url, p.code_url, affiliations))
+        parts.append(get_block_html(p.title, authors,p.arxiv_id ,p.tldr, p.pdf_url, p.code_url, affiliations,date=p.date,comment=p.comment,abs_url=p.abs_url))
 
     content = '<br>' + '</br><br>'.join(parts) + '</br>'
     return framework.replace('__CONTENT__', content)
@@ -144,10 +191,13 @@ def send_email(sender:str, receiver:str, password:str,smtp_server:str,smtp_port:
     def _format_addr(s):
         name, addr = parseaddr(s)
         return formataddr((Header(name, 'utf-8').encode(), addr))
-
+    print(receiver)
+    logger.warning(f"receiver")
+    receivers = json.loads(receiver)
     msg = MIMEText(html, 'html', 'utf-8')
     msg['From'] = _format_addr('Github Action <%s>' % sender)
-    msg['To'] = _format_addr('You <%s>' % receiver)
+    # msg['To'] = _format_addr('You <%s>' % receiver)
+    msg['To'] = ', '.join([_format_addr(f'<%s>' % receiver) for receiver in receivers])
     today = datetime.datetime.now().strftime('%Y/%m/%d')
     msg['Subject'] = Header(f'Daily arXiv {today}', 'utf-8').encode()
 
@@ -160,5 +210,5 @@ def send_email(sender:str, receiver:str, password:str,smtp_server:str,smtp_port:
         server = smtplib.SMTP_SSL(smtp_server, smtp_port)
 
     server.login(sender, password)
-    server.sendmail(sender, [receiver], msg.as_string())
+    server.sendmail(sender, receivers, msg.as_string())
     server.quit()

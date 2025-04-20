@@ -45,32 +45,34 @@ def filter_corpus(corpus:list[dict], pattern:str) -> list[dict]:
     os.remove(filename)
     return new_corpus
 
-
-def get_arxiv_paper(query:str, debug:bool=False) -> list[ArxivPaper]:
-    client = arxiv.Client(num_retries=10,delay_seconds=10)
-    feed = feedparser.parse(f"https://rss.arxiv.org/atom/{query}")
-    if 'Feed error for query' in feed.feed.title:
-        raise Exception(f"Invalid ARXIV_QUERY: {query}.")
-    if not debug:
-        papers = []
-        all_paper_ids = [i.id.removeprefix("oai:arXiv.org:") for i in feed.entries if i.arxiv_announce_type == 'new']
-        bar = tqdm(total=len(all_paper_ids),desc="Retrieving Arxiv papers")
-        for i in range(0,len(all_paper_ids),50):
-            search = arxiv.Search(id_list=all_paper_ids[i:i+50])
-            batch = [ArxivPaper(p) for p in client.results(search)]
-            bar.update(len(batch))
-            papers.extend(batch)
-        bar.close()
-
+def get_authors(authors, first_author = False):
+    output = str()
+    if first_author == False:
+        output = ", ".join(str(author) for author in authors)
     else:
-        logger.debug("Retrieve 5 arxiv papers regardless of the date.")
-        search = arxiv.Search(query='cat:cs.AI', sort_by=arxiv.SortCriterion.SubmittedDate)
-        papers = []
-        for i in client.results(search):
-            papers.append(ArxivPaper(i))
-            if len(papers) == 5:
-                break
+        output = authors[0]
+    return output
+def sort_papers(papers):
+    output = dict()
+    keys = list(papers.keys())
+    keys.sort(reverse=True)
+    for key in keys:
+        output[key] = papers[key]
+    return output    
 
+def get_arxiv_paper(query: str, debug: bool = False, max_results: int = 30) -> list[ArxivPaper]:
+    # 创建 arxiv 搜索引擎实例
+    search_engine = arxiv.Search(
+        query=query,
+        max_results=max_results,
+        sort_by=arxiv.SortCriterion.SubmittedDate
+    )
+    papers = []
+    for result in search_engine.results():
+        # 将论文封装成 ArxivPaper 对象
+        paper = ArxivPaper(result)
+        papers.append(paper)
+        
     return papers
 
 
@@ -100,46 +102,46 @@ def add_argument(*args, **kwargs):
 
 if __name__ == '__main__':
     
-    add_argument('--zotero_id', type=str, help='Zotero user ID')
-    add_argument('--zotero_key', type=str, help='Zotero API key')
+    add_argument('--zotero_id', type=str, default='15385713', help='Zotero user ID')
+    add_argument('--zotero_key', type=str, default = 'CWVYk463YUtPFKIpda7kqfKH', help='Zotero API key')
     add_argument('--zotero_ignore',type=str,help='Zotero collection to ignore, using gitignore-style pattern.')
     add_argument('--send_empty', type=bool, help='If get no arxiv paper, send empty email',default=False)
-    add_argument('--max_paper_num', type=int, help='Maximum number of papers to recommend',default=100)
-    add_argument('--arxiv_query', type=str, help='Arxiv search query')
-    add_argument('--smtp_server', type=str, help='SMTP server')
-    add_argument('--smtp_port', type=int, help='SMTP port')
-    add_argument('--sender', type=str, help='Sender email address')
-    add_argument('--receiver', type=str, help='Receiver email address')
-    add_argument('--sender_password', type=str, help='Sender email password')
+    add_argument('--max_paper_num', type=int, help='Maximum number of papers to recommend',default=2)
+    add_argument('--arxiv_query', type=str, default='ti:("Time series" OR "Time-series")', help='Arxiv search query')
+    add_argument('--smtp_server', type=str,default='smtp.qq.com', help='SMTP server')
+    add_argument('--smtp_port', type=int, default='465', help='SMTP port')
+    add_argument('--sender', type=str, default='1812291127@qq.com', help='Sender email address')
+    add_argument('--receiver', type=str,  default='["hycheng@stu.ecnu.edu.cn"]', help='Receiver email address')
+    add_argument('--sender_password', type=str, default='xdoimelilwcxdecb', help='Sender email password')
     add_argument(
         "--use_llm_api",
         type=bool,
         help="Use OpenAI API to generate TLDR",
-        default=False,
+        default=True,
     )
     add_argument(
         "--openai_api_key",
         type=str,
         help="OpenAI API key",
-        default=None,
+        default="sk-37ca05e6889e4d61aa2a08cc1d55339c",
     )
     add_argument(
         "--openai_api_base",
         type=str,
         help="OpenAI API base URL",
-        default="https://api.openai.com/v1",
+        default="https://chat.ecnu.edu.cn/open/api/v1",
     )
     add_argument(
         "--model_name",
         type=str,
         help="LLM Model Name",
-        default="gpt-4o",
+        default="ecnu-plus",
     )
     add_argument(
         "--language",
         type=str,
         help="Language of TLDR",
-        default="English",
+        default="Chinese",
     )
     parser.add_argument('--debug', action='store_true', help='Debug mode')
     args = parser.parse_args()
@@ -162,14 +164,14 @@ if __name__ == '__main__':
         corpus = filter_corpus(corpus, args.zotero_ignore)
         logger.info(f"Remaining {len(corpus)} papers after filtering.")
     logger.info("Retrieving Arxiv papers...")
-    papers = get_arxiv_paper(args.arxiv_query, args.debug)
+    papers = get_arxiv_paper(args.arxiv_query, args.debug,max_results=args.max_paper_num)
     if len(papers) == 0:
         logger.info("No new papers found. Yesterday maybe a holiday and no one submit their work :). If this is not the case, please check the ARXIV_QUERY.")
         if not args.send_empty:
           exit(0)
     else:
         logger.info("Reranking papers...")
-        papers = rerank_paper(papers, corpus)
+        # papers = rerank_paper(papers, corpus)
         if args.max_paper_num != -1:
             papers = papers[:args.max_paper_num]
         if args.use_llm_api:
