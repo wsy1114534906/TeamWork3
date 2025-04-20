@@ -6,7 +6,7 @@
 <p align="center"> 根据你的Zotero图书馆每天推荐你感兴趣的新论文
     <br> 
 </p>
-> [注意]
+> [!注意]
 > 请关注此 repo，并在上游有任何更新时及时合并您 forked repo，以便享受新功能并修复发现的错误。
 
 ## 🧐 关于 <a name = "about"></a>
