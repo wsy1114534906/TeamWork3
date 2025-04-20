@@ -1,4 +1,4 @@
-from llama_cpp import Llama
+# from llama_cpp import Llama
 from openai import OpenAI
 from loguru import logger
 
@@ -6,16 +6,16 @@ GLOBAL_LLM = None
 
 class LLM:
     def __init__(self, api_key: str = None, base_url: str = None, model: str = None,lang: str = "English"):
-        if api_key:
-            self.llm = OpenAI(api_key=api_key, base_url=base_url)
-        else:
-            self.llm = Llama.from_pretrained(
-                repo_id="Qwen/Qwen2.5-3B-Instruct-GGUF",
-                filename="qwen2.5-3b-instruct-q4_k_m.gguf",
-                n_ctx=5_000,
-                n_threads=4,
-                verbose=False,
-            )
+        # if api_key:
+        self.llm = OpenAI(api_key=api_key, base_url=base_url)
+        # else:
+        #     self.llm = Llama.from_pretrained(
+        #         repo_id="Qwen/Qwen2.5-3B-Instruct-GGUF",
+        #         filename="qwen2.5-3b-instruct-q4_k_m.gguf",
+        #         n_ctx=5_000,
+        #         n_threads=4,
+        #         verbose=False,
+        #     )
         self.model = model
         self.lang = lang
 
