@@ -27,6 +27,6 @@
 - 支持 LLM API 生成论文的 TL;DR。
 - 使用 gitignore 样式模式忽略不需要的 Zotero 论文。
 
-## 📷 Screenshot
+## 📷 产品截图
 ![Product interface](https://github.com/user-attachments/assets/24b169b5-e036-49e7-b89f-7834c400c969)
 
