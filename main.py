@@ -30,19 +30,30 @@ def get_zotero_corpus(id:str,key:str) -> list[dict]:
     for c in corpus:
         paths = [get_collection_path(col) for col in c['data']['collections']]
         c['paths'] = paths
+
+    print(corpus)
+    
     return corpus
 
-def filter_corpus(corpus:list[dict], pattern:str) -> list[dict]:
-    _,filename = mkstemp()
-    with open(filename,'w') as file:
-        file.write(pattern)
-    matcher = parse_gitignore(filename,base_dir='./')
-    new_corpus = []
+# def filter_corpus(corpus:list[dict], pattern:str) -> list[dict]:
+#     _,filename = mkstemp()
+#     with open(filename,'w') as file:
+#         file.write(pattern)
+#     matcher = parse_gitignore(filename,base_dir='./')
+#     new_corpus = []
+#     for c in corpus:
+#         match_results = [matcher(p) for p in c['paths']]
+#         if not any(match_results):
+#             new_corpus.append(c)
+#     os.remove(filename)
+#     return new_corpus
+
+# 获取标题，下载时间，摘要
+def choose_corpus(corpus:list[dict]) -> dict:
+    new_corpus = {}
     for c in corpus:
-        match_results = [matcher(p) for p in c['paths']]
-        if not any(match_results):
-            new_corpus.append(c)
-    os.remove(filename)
+        c_dict = {'key':c['key'], 'title':c['data']['title'], 'addedDate':c['data']['dateAdded'], 'abstractNote':c['data']['abstractNote']}
+        new_corpus[c['key']]=c_dict
     return new_corpus
 
 def get_authors(authors, first_author = False):
@@ -111,7 +122,7 @@ if __name__ == '__main__':
     add_argument('--smtp_server', type=str,default='smtp.qq.com', help='SMTP server')
     add_argument('--smtp_port', type=int, default='465', help='SMTP port')
     add_argument('--sender', type=str, default='1812291127@qq.com', help='Sender email address')
-    add_argument('--receiver', type=str,  default='["hycheng@stu.ecnu.edu.cn"]', help='Receiver email address')
+    add_argument('--receiver', type=str,  default='["51275903106@stu.ecnu.edu.cn"]', help='Receiver email address')
     add_argument('--sender_password', type=str, default='xdoimelilwcxdecb', help='Sender email password')
     add_argument(
         "--use_llm_api",
@@ -156,13 +167,18 @@ if __name__ == '__main__':
         logger.remove()
         logger.add(sys.stdout, level="INFO")
 
+    # starting
     logger.info("Retrieving Zotero corpus...")
     corpus = get_zotero_corpus(args.zotero_id, args.zotero_key)
     logger.info(f"Retrieved {len(corpus)} papers from Zotero.")
-    if args.zotero_ignore:
-        logger.info(f"Ignoring papers in:\n {args.zotero_ignore}...")
-        corpus = filter_corpus(corpus, args.zotero_ignore)
-        logger.info(f"Remaining {len(corpus)} papers after filtering.")
+    # if args.zotero_ignore:
+    #     logger.info(f"Ignoring papers in:\n {args.zotero_ignore}...")
+    #     # corpus = filter_corpus(corpus, args.zotero_ignore)
+    #     corpus = choose_corpus(corpus)
+    #     logger.info(f"Remaining {len(corpus)} papers after filtering.")
+    # # ending
+    corpus = choose_corpus(corpus)
+
     logger.info("Retrieving Arxiv papers...")
     papers = get_arxiv_paper(args.arxiv_query, args.debug,max_results=args.max_paper_num)
     if len(papers) == 0:
